@@ -1,0 +1,73 @@
+{'@timestamp': '2025-07-12T08:55:58.948Z', 
+'@metadata': {'beat': 'packetbeat', 'type': '_doc', 'version': '9.0.3'}, 
+'client': {'ip': '210.119.12.25', 'port': 62360, 'bytes': 41},
+'status': 'Error',
+'host': {'name': 'PKNU'}, 
+'user_id': 'NEEDS_REPLACEMENT',
+'event_source': 'packetbeat',
+'method': 'QUERY',
+'query': 'class IN,
+type A, CISCO-CAPWAP-CONTROLLER',
+'resource': 'CISCO-CAPWAP-CONTROLLER',
+'ecs': {'version': '8.0.0'},
+'server': {'ip': '255.255.255.255', 'port': 53},
+'related': {'ip': ['210.119.12.25', '255.255.255.255']},
+'dns': {'answers_count': 0, 'type': 'query', 'op_code': 'QUERY', 'flags': {'authentic_data': False, 'checking_disabled': False, 'authoritative': False, 'truncated_response': False, 'recursion_desired': True, 'recursion_available': False}, 'response_code': 'NOERROR', 'authorities_count': 0, 'additionals_count': 0, 'id': 3573, 'header_flags': ['RD'], 'question': {'name': 'CISCO-CAPWAP-CONTROLLER', 'type': 'A', 'class': 'IN'}},
+'error': {'message': 'Another query with the same DNS ID from this client was received so this query was closed without receiving a response'},
+'type': 'dns',
+'source': {'port': 62360, 'bytes': 41, 'ip': '210.119.12.25'},
+'agent': {'ephemeral_id': '8a9199b7-b8de-4c9b-9826-81de9bba21c8', 'id': 'ca98a39d-064a-49ce-acb0-fddb3f35e764', 'name': 'PKNU', 'type': 'packetbeat', 'version': '9.0.3'},
+'destination': {'ip': '255.255.255.255', 'port': 53},
+'network': {'type': 'ipv4', 'transport': 'udp', 'protocol': 'dns', 'direction': 'unknown', 'community_id': '1:AaexmsPWcAL2kkDRll78YtuVkjI=', 'bytes': 41},
+'event': {'type': ['connection', 'protocol'], 'dataset': 'dns', 'start': '2025-07-12T08:55:58.948Z', 'kind': 'event', 'category': ['network']}}
+
+로그 데이터 : [{'log_data': {'@timestamp': '2025-07-13T11:50:31.877Z', '@metadata': {'beat': 'winlogbeat', 'type': '_doc', 'version': '9.0.3'}, 'event': {'provider': 'Microsoft-Windows-Security-Auditing', 'outcome': 'success', 'action': 'Security Group Management', 'created': '2025-07-13T11:50:32.948Z', 'code': '4799', 'kind': 'event'}, 'user_id': 'NEEDS_REPLACEMENT', 'ecs': {'version': '8.0.0'}, 'host': {'name': 'PKNU'}, 'winlog': {'provider_name': 'Microsoft-Windows-Security-Auditing', 'activity_id': '{55C59FAD-F3BD-0004-D29F-C555BDF3DB01}', 'provider_guid': '{54849625-5478-4994-A5BA-3E3B0328C30D}', 'event_data': {'TargetDomainName': 'Builtin', 'TargetSid': 'S-1-5-32-544', 'SubjectUserSid': 'S-1-5-18', 'CallerProcessId': '0x25f0', 'CallerProcessName': 'C:\\Program Files\\AhnLab\\EPP Platform\\1.0\\bin\\nepws64.exe', 'TargetUserName': 'Administrators', 'SubjectUserName': 'PKNU$', 'SubjectLogonId': '0x3e7', 'SubjectDomainName': 'WORKGROUP'}, 'keywords': ['Audit Success'], 'event_id': '4799', 'task': 'Security Group Management', 'computer_name': 'PKNU', 'process': {'thread': {'id': 19296}, 'pid': 1368}, 'channel': 'Security', 'record_id': 249235, 'opcode': 'Info'}, 'log': {'level': 'information'}, 'message': '보안 기능이 설정된 로컬 구성원이 열거되었습니다.\n\n주체:\n\t보안 ID:\t\tS-1-5-18\n\t계정 이름:\t\tPKNU$\n\t계정 도메인:\t\tWORKGROUP\n\t로그온 ID:\t\t0x3e7\n\n그룹:\n\t보안 ID:\t\tS-1-5-32-544\n\t그룹 이름:\t\tAdministrators\n\t그룹 도메인:\t\tBuiltin\n\n프로세스 정보:\n\t프로세스 ID:\t\t0x25f0\n\t프로세스 이름:\t\tC:\\Program Files\\AhnLab\\EPP Platform\\1.0\\bin\\nepws64.exe', 'event_source': 'winlogbeat', 'fields': {'event_source': 'winlogbeat'}, 'agent': {'version': '9.0.3', 'ephemeral_id': 'aa94ff03-4351-45a1-a301-579ca6bc8f47', 'id': '7236011b-6ff5-43bf-8cd3-866c259e0bd4', 'name': 'PKNU', 'type': 'winlogbeat'}}}]
+
+    def predict_log_threat(self, log_data: Dict[str, Any]) -> Tuple[str, float]:
+        """
+        [수정됨] Pydantic으로 타입을 검증한 후, 숫자 변환을 거쳐 예측을 수행합니다.
+        """
+        try:
+            # 1. 기존의 복잡한 전처리 수행
+            mapped_log = map_sysmon_to_model_columns(log_data)
+            print("mapped_log:", mapped_log)
+            filled_log = fill_and_mask_missing_features(mapped_log)
+            print("filled_log:", filled_log)
+            
+            # 2. Pydantic 모델(LogFeatures)로 전처리 결과의 타입과 구조를 명시적으로 검증
+            log_features = LogFeatures(**filled_log)
+
+            # 3. [핵심 수정] 검증된 데이터를 모델 입력에 맞는 순수 숫자 형태로 변환
+            numeric_dict = {}
+            for field_name, value in log_features.model_dump().items():
+                if '_missing' in field_name:
+                    numeric_dict[field_name] = value
+                    continue
+                
+                if isinstance(value, str):
+                    numeric_dict[field_name] = len(value)
+                elif isinstance(value, (list, dict)):
+                    numeric_dict[field_name] = len(value)
+                else: # int, float 등은 그대로 사용
+                    numeric_dict[field_name] = value
+            print("숫자 변환 딕셔너리:", numeric_dict)        
+
+            # 4. 변환된 숫자 딕셔너리로 DataFrame 생성
+            X = pd.DataFrame([numeric_dict], columns=self.log_feature_columns)
+            print("모델 입력 df", X)
+            # 5. 스케일러 적용
+            x_scaled = self.log_scaler.transform(X)
+            
+            # 6. 예측 수행
+            pred_proba = self.log_model.predict(x_scaled, verbose=0)
+            pred_index = int(np.argmax(pred_proba))
+            pred_score = float(pred_proba[0][pred_index])
+            
+            label_name = settings.LOG_LABEL_MAP.get(pred_index, "Unknown")
+            print("실제 예측이 무엇인지 궁금쓰", label_name, pred_score)
+            
+            return label_name, pred_score
+
+        except Exception as e:
+            print(f"Winlogbeat 로그 예측 중 오류 발생: {e}")
+            return "Prediction Error", 0.0
